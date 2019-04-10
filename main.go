@@ -1,24 +1,30 @@
 package main
 
 import (
+	"BitTorrentTracker/bittorrent"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-// create a new item
+// HandleClientRequest :
 func HandleClientRequest(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	var peerRequest PeerRequest = json.NewDecoder(r.Body).Decode(&peerRequest)
-
-	//json.NewEncoder(w).Encode(people)
+	fmt.Println(r.Body)
+	var peerRequest bittorrent.PeerRequest
+	_ = json.NewDecoder(r.Body).Decode(&peerRequest)
+	fmt.Println(peerRequest)
+	var trackerResponse bittorrent.TrackerResponse
+	json.NewEncoder(w).Encode(trackerResponse)
 }
 
 // main function to boot up everything
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", HandleClientRequest).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8000", router))
+
+	fmt.Println("Server Listening at 3000")
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
