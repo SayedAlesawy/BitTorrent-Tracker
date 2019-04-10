@@ -10,9 +10,10 @@ const (
 	completed EventType = "completed"
 )
 
-type peertodownload struct {
-	uploaded   int
-	downloaded int
-	left       int
-	event      EventType
+// PeerDownload ;
+type PeerDownload struct {
+	Uploaded   int
+	Downloaded int
+	Left       int
+	Event      EventType
 }
