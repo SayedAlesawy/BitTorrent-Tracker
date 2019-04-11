@@ -26,6 +26,30 @@ func Migrate() {
 		ip varchar(60) NOT NULL
 		);`
 
+	sqlStatement +=
+		`
+		DROP TABLE downloads;
+		CREATE TABLE downloads (
+		id SERIAL PRIMARY KEY,
+		info_hash varchar(60) UNIQUE
+		);`
+
+	sqlStatement +=
+		`
+		DROP TABLE peerdownloads;
+		CREATE TABLE peerdownloads (
+		id SERIAL PRIMARY KEY,
+		info_hash varchar(60) ,
+		peer_id varchar(60),
+		uploaded INTEGER,
+		downloaded INTEGER,
+		amt_left INTEGER,
+		event varchar(60)
+		);
+		ALTER TABLE peerdownloads
+		ADD CONSTRAINT uq_peerdownloads UNIQUE(peer_id, info_hash);
+
+		`
 	_, err := db.Exec(sqlStatement)
 	if err != nil {
 		fmt.Println(err)
@@ -75,17 +99,17 @@ func ExecuteQuery(sqlStatement string) {
 }
 
 // CreatePeerDownload ;
-func CreatePeerDownload(uploaded int, downloaded int, left int, event bittorrent.EventType) bittorrent.PeerDownload {
+func CreatePeerDownload(uploaded int, downloaded int, left int, event bittorrent.EventType, peerID string, infoHash string) bittorrent.PeerDownload {
 	db := connectDB()
 	defer db.Close()
 
 	sqlStatement :=
 		`
-		INSERT INTO peerdownloads (uploaded, downloaded, left, event)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO peerdownloads (uploaded, downloaded, amt_left, event,peer_id,info_hash)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		`
 
-	_, err := db.Exec(sqlStatement, uploaded, downloaded, left, event)
+	_, err := db.Exec(sqlStatement, uploaded, downloaded, left, event, peerID, infoHash)
 
 	var peerDownload bittorrent.PeerDownload
 
@@ -110,7 +134,7 @@ func CreateDownload(infoHash string) bittorrent.Download {
 
 	sqlStatement :=
 		`
-		INSERT INTO downloads (infoHash)
+		INSERT INTO downloads (info_hash)
 		VALUES ($1)
 		`
 
@@ -136,7 +160,7 @@ func CreatePeer(peerID, port, ip string) bittorrent.Peer {
 
 	sqlStatement :=
 		`
-		INSERT INTO peers (peerID, port, ip)
+		INSERT INTO peers (peer_id, port, ip)
 		VALUES ($1, $2, $3)
 		`
 
@@ -153,5 +177,59 @@ func CreatePeer(peerID, port, ip string) bittorrent.Peer {
 		fmt.Println("[DB] Created Peer successfully")
 	}
 
+	return peer
+}
+
+//GetPeers :
+func GetPeers(infoHash string) []bittorrent.Peer {
+	db := connectDB()
+	defer db.Close()
+
+	rows, err := db.Query("SELECT peer_id FROM peerdownloads where  info_hash = $1", infoHash)
+	if err != nil {
+		// handle this error better than this
+		panic(err)
+	}
+	defer rows.Close()
+
+	var peerIDs []bittorrent.Peer
+	for rows.Next() {
+		var peer_id string
+		err = rows.Scan(&peer_id)
+		if err != nil {
+			// handle this error
+			panic(err)
+		}
+		peerIDs = append(peerIDs, getPeer(peer_id))
+
+	}
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+	return peerIDs
+}
+
+//GetPeer :
+func getPeer(peerID string) bittorrent.Peer {
+	db := connectDB()
+	defer db.Close()
+
+	sqlStatement := `SELECT * FROM peers WHERE peer_id=$1;`
+
+	var peer bittorrent.Peer
+	var dummyID int
+
+	row := db.QueryRow(sqlStatement, peerID)
+	switch err := row.Scan(&dummyID, &peer.ID, &peer.Port, &peer.IP); err {
+	case sql.ErrNoRows:
+		fmt.Println("No rows were returned!")
+	case nil:
+		fmt.Println(peer)
+	default:
+		panic(err)
+
+	}
 	return peer
 }

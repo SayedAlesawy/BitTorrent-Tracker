@@ -13,30 +13,51 @@ import (
 
 // HandleClientRequest :
 func HandleClientRequest(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Body)
 	var peerRequest bittorrent.PeerRequest
 	_ = json.NewDecoder(r.Body).Decode(&peerRequest)
-	fmt.Println(peerRequest)
+	fmt.Println("[SERVER] Client IP Address ", r.RemoteAddr)
+	peers := ProcessPeerRequest(peerRequest)
+	fmt.Println(peers)
 	var trackerResponse bittorrent.TrackerResponse
+
 	json.NewEncoder(w).Encode(trackerResponse)
+
 }
 
 // ProcessPeerRequest A function to process the peer request
-func ProcessPeerRequest(peerRequest bittorrent.PeerRequest) {
+func ProcessPeerRequest(peerRequest bittorrent.PeerRequest) []bittorrent.Peer {
 	var peerID = peerRequest.PeerID
 	var ip = "124.123.125.12"
 	var port = peerRequest.Port
+	var infoHash = peerRequest.InfoHash
 
+	var uploaded = peerRequest.Uploaded
+	var downloaded = peerRequest.Downloaded
+	var left = peerRequest.Left
+	var event = peerRequest.Event
+
+	fmt.Println("[SERVER] Creating Peer")
 	peer := dbwrapper.CreatePeer(peerID, port, ip)
+	fmt.Print("[SERVER] ", peer)
 
-	fmt.Print(peer)
+	fmt.Println("[SERVER] Creating Download")
+	download := dbwrapper.CreateDownload(infoHash)
+	fmt.Print("[SERVER] ", download)
+
+	fmt.Println("[SERVER] Creating DownloadPeer")
+	peerDownload := dbwrapper.CreatePeerDownload(uploaded, downloaded, left, event, peerID, infoHash)
+	fmt.Println(peerDownload)
+	fmt.Print("[SERVER] ", peerDownload)
+
+	fmt.Println("[SERVER] Getting Peers for download " + infoHash)
+	peers := dbwrapper.GetPeers(infoHash)
+	return peers
 }
 
 // main function to boot up everything
 func main() {
 	dbwrapper.Migrate()
-	fmt.Print("Finished")
-	return
+	fmt.Println("Migrated Database")
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", HandleClientRequest).Methods("POST")
