@@ -34,13 +34,13 @@ const CreatePeerDownloadTable string = `
 `
 
 // DropPeersTable SQL to drop the Peers table
-const DropPeersTable string = `DROP TABLE peers;`
+const DropPeersTable string = `DROP TABLE IF EXISTS peers;`
 
 // DropDownloadsTable SQL to drop the Downloads table
-const DropDownloadsTable string = `DROP TABLE downloads;`
+const DropDownloadsTable string = `DROP TABLE IF EXISTS downloads;`
 
 // DropPeerDownloadTable SQL to drop the Peers_Downloads table
-const DropPeerDownloadTable string = `DROP TABLE peerdownloads;`
+const DropPeerDownloadTable string = `DROP TABLE IF EXISTS peerdownloads;`
 
 // InsertPeer SQL to insert a peer in the peers table
 const InsertPeer string = `
