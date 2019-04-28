@@ -1,0 +1,5 @@
+#/bin/sh
+go run main.go movie1 1 3001 20 2 150 &
+go run main.go movie1 2 3002 20 2 150 &
+go run main.go movie2 3 3003 50 7 190 &
+go run main.go movie2 4 3004 20 6 152 &
