@@ -65,3 +65,6 @@ const SelectPeer string = `SELECT * FROM peers WHERE peer_id=$1;`
 
 // SelectPeerList SQL to select peer list based on a common file being downloaded
 const SelectPeerList string = `SELECT peer_id FROM peerdownloads where  info_hash = $1`
+
+// SelectDownloads SQL to select all downloads
+const SelectDownloads string = `SELECT info_hash FROM downloads`

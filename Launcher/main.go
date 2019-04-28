@@ -12,6 +12,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// LogSign Used for logging tracker messages
+const LogSign string = "[Tracker]"
+
 // HandleAnnounceRequest A function to handle the announce request
 func HandleAnnounceRequest(writer http.ResponseWriter, req *http.Request) {
 	var peerRequest tracker.PeerRequest
@@ -21,8 +24,7 @@ func HandleAnnounceRequest(writer http.ResponseWriter, req *http.Request) {
 
 	peerList := RegisterPeer(peerRequest)
 	logger.LogMsg(LogSign, "Peer List:")
-	for idx, peer := range peerList {
-		fmt.Printf("  Peer %d:\n", idx)
+	for _, peer := range peerList {
 		tracker.PrintPeer(peer)
 	}
 	//TODO bencode and send json
@@ -59,8 +61,11 @@ func RegisterPeer(peerRequest tracker.PeerRequest) []tracker.Peer {
 	return peerList
 }
 
-// LogSign Used for logging tracker messages
-const LogSign string = "[Tracker]"
+// HandleSwarmsRequest A function to handle the swarms request
+func HandleSwarmsRequest(writer http.ResponseWriter, req *http.Request) {
+	swarms := dbwrapper.GetSwarms()
+	json.NewEncoder(writer).Encode(swarms)
+}
 
 func main() {
 	dbwrapper.CleanUP()
@@ -68,6 +73,7 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", HandleAnnounceRequest).Methods("POST")
+	router.HandleFunc("/swarms", HandleSwarmsRequest).Methods("GET")
 
 	logger.LogMsg(LogSign, "Listening on port 3000")
 	log.Fatal(http.ListenAndServe(":3000", router))

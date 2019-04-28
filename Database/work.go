@@ -125,3 +125,41 @@ func GetPeerList(infoHash string) []tracker.Peer {
 
 	return peerList
 }
+
+// GetSwarms A function to get current swarms
+func GetSwarms() []tracker.SwarmResponse {
+	sqlStatement := SelectDownloads
+
+	logMsgs := logger.LogInfo{
+		Success: "Downloads selected Successfully",
+		Error:   "Downloads selection failed",
+	}
+
+	rows, ok := ExecuteRowsQuery(sqlStatement, logMsgs, false)
+	defer rows.Close()
+
+	var swarms []tracker.SwarmResponse
+	for rows.Next() {
+		//Ma3lsh ya linter, need to change col name in DB
+		var info_hash string
+
+		err := rows.Scan(&info_hash)
+		logger.LogErr(err, LogSign, "GetSwarms(): Error while extracting results", false)
+
+		var response tracker.SwarmResponse
+		response.InfoHash = info_hash
+		response.PeerList = GetPeerList(info_hash)
+
+		swarms = append(swarms, response)
+	}
+
+	err := rows.Err()
+	logger.LogErr(err, LogSign, "GetSwarms(): Error while extracting results", false)
+	logger.LogSuccess(err, LogSign, "Swarm list extracted successfully")
+
+	if ok == false {
+		swarms = []tracker.SwarmResponse{}
+	}
+
+	return swarms
+}

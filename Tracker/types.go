@@ -58,3 +58,9 @@ type TrackerResponse struct {
 	Incomplete    int           `json:"incomplete,omitempty"` //Number of leechers (peers with non-complete files)
 	Peers         string        `json:"peers,omitempty"`      //Bencoded dictionary (list of peers, each has id, ip, port)
 }
+
+// SwarmResponse Reprsents a swarm response
+type SwarmResponse struct {
+	InfoHash string
+	PeerList []Peer
+}
