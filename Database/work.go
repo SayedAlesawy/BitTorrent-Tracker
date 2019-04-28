@@ -126,6 +126,38 @@ func GetPeerList(infoHash string) []tracker.Peer {
 	return peerList
 }
 
+// GetDownloadStats A function to get the download stats
+func GetDownloadStats(infoHash string, peerID string) tracker.PeerDownload {
+	sqlStatement := SelectPeerDownload
+
+	row := ExecuteRowQuery(sqlStatement, infoHash, peerID)
+
+	var dummy tracker.PeerDownload
+	var peerDownload tracker.PeerDownload
+	var uploaded int
+	var downloaded int
+	var amt_left int
+	var event string
+
+	switch err := row.Scan(&uploaded, &downloaded, &amt_left, &event); err {
+	case sql.ErrNoRows:
+		logger.LogMsg(LogSign, fmt.Sprintf("No such peer with id = %s", peerID))
+	case nil:
+		peerDownload = dummy
+	default:
+		panic(err)
+	}
+
+	peerDownload = tracker.PeerDownload{
+		Uploaded:   uploaded,
+		Downloaded: downloaded,
+		Left:       amt_left,
+		Event:      tracker.EventType(event),
+	}
+
+	return peerDownload
+}
+
 // GetSwarms A function to get current swarms
 func GetSwarms() []tracker.SwarmResponse {
 	sqlStatement := SelectDownloads
@@ -148,8 +180,16 @@ func GetSwarms() []tracker.SwarmResponse {
 
 		var response tracker.SwarmResponse
 		response.InfoHash = info_hash
-		response.PeerList = GetPeerList(info_hash)
+		peerList := GetPeerList(info_hash)
 
+		for _, peer := range peerList {
+			stat := GetDownloadStats(info_hash, peer.ID)
+			info := tracker.PeerInfo{
+				Peer: peer,
+				Stat: stat,
+			}
+			response.PeerInfo = append(response.PeerInfo, info)
+		}
 		swarms = append(swarms, response)
 	}
 

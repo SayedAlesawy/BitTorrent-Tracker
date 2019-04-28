@@ -68,3 +68,6 @@ const SelectPeerList string = `SELECT peer_id FROM peerdownloads where  info_has
 
 // SelectDownloads SQL to select all downloads
 const SelectDownloads string = `SELECT info_hash FROM downloads`
+
+// SelectPeerDownload SQL to select a certain peerdownload
+const SelectPeerDownload string = `SELECT uploaded, downloaded, amt_left, event FROM peerdownloads WHERE info_hash = $1 and peer_id = $2`

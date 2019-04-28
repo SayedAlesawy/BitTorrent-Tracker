@@ -59,8 +59,14 @@ type TrackerResponse struct {
 	Peers         string        `json:"peers,omitempty"`      //Bencoded dictionary (list of peers, each has id, ip, port)
 }
 
+//PeerInfo ..
+type PeerInfo struct {
+	Peer Peer
+	Stat PeerDownload
+}
+
 // SwarmResponse Reprsents a swarm response
 type SwarmResponse struct {
 	InfoHash string
-	PeerList []Peer
+	PeerInfo []PeerInfo
 }
