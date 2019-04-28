@@ -4,14 +4,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 )
 
 func main() {
-
+	args := os.Args
 	url := "http://localhost:3000"
+	infoHash := args[1]
+	peerID := args[2]
+	port := args[3]
+	uploaded, _ := strconv.Atoi(args[4])
+	downloaded, _ := strconv.Atoi(args[5])
+	left, _ := strconv.Atoi(args[6])
 
-	payload := strings.NewReader("{\n\t\"infoHash\": \"movie1\",\n\t\"peerID\": \"1\",\n\t\"port\": \"3001\",\n\t\"uploaded\": 20,\n\t\"downloaded\": 3,\n\t\"left\": 6,\n\t\"event\": \"started\"\n}")
+	params := fmt.Sprintf("{\n\t\"infoHash\": \"%s\",\n\t\"peerID\": \"%s\",\n\t\"port\": \"%s\",\n\t\"uploaded\": %d,\n\t\"downloaded\": %d,\n\t\"left\": %d,\n\t\"event\": \"started\"\n}",
+		infoHash, peerID, port, uploaded, downloaded, left)
+	payload := strings.NewReader(params)
 
 	req, _ := http.NewRequest("POST", url, payload)
 
