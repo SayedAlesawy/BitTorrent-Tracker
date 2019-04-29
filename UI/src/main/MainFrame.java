@@ -16,6 +16,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -277,10 +278,14 @@ class MainFrame extends Pane {
                     response = client.newCall(request).execute();
                     String content = response.body().string();
                     System.out.println(content);
-                    JSONArray jsonArray = new JSONArray(content);
-                    newData = jsonToData(jsonArray);
+                    if (content.startsWith("null")) {
+                        newData.clear();
+                    } else {
+                        JSONArray jsonArray = new JSONArray(content);
+                        newData = jsonToData(jsonArray);
+                    }
                     Platform.runLater(() -> paint());
-                } catch (IOException e) {
+                } catch (IOException | JSONException e) {
                     Platform.runLater(() -> {
                         isConnected = false;
                         sidebar.setConnected(false);
