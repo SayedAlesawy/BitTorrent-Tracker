@@ -71,3 +71,10 @@ const SelectDownloads string = `SELECT info_hash FROM downloads`
 
 // SelectPeerDownload SQL to select a certain peerdownload
 const SelectPeerDownload string = `SELECT uploaded, downloaded, amt_left, event FROM peerdownloads WHERE info_hash = $1 and peer_id = $2`
+
+// UpdatePeerDownload SQL to update the peer-download relationship
+const UpdatePeerStatus string = `
+		UPDATE peerdownloads
+		SET uploaded = $1, downloaded = $2, amt_left = $3, event = $4
+		WHERE peer_id = $5 AND info_hash = $6; 
+`

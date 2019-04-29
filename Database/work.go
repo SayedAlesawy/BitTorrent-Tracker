@@ -203,3 +203,17 @@ func GetSwarms() []tracker.SwarmResponse {
 
 	return swarms
 }
+
+// UpdatePeerDownload A function to update the peer-download status
+func UpdatePeerDownload(downloaded int, uploaded int, left int, event tracker.EventType, peerID string, infoHash string) bool {
+	sqlStatement := UpdatePeerStatus
+
+	logMsgs := logger.LogInfo{
+		Success: "PeerDownload updated Successfully",
+		Error:   "PeerDownload update failed",
+	}
+
+	ok := ExecuteQuery(sqlStatement, logMsgs, false, uploaded, downloaded, left, event, peerID, infoHash)
+
+	return ok
+}

@@ -67,6 +67,21 @@ func HandleSwarmsRequest(writer http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(writer).Encode(swarms)
 }
 
+// HandleStatUpdate A function to handle the status update request
+func HandleStatUpdate(writer http.ResponseWriter, req *http.Request) {
+	var peerRequest tracker.PeerRequest
+
+	json.NewDecoder(req.Body).Decode(&peerRequest)
+	logger.LogMsg(LogSign, fmt.Sprintf("Received update request from IP = %s", req.RemoteAddr))
+
+	ok := dbwrapper.UpdatePeerDownload(peerRequest.Downloaded, peerRequest.Uploaded, peerRequest.Left,
+		peerRequest.Event, peerRequest.PeerID, peerRequest.InfoHash)
+
+	if ok == true {
+		logger.LogMsg(LogSign, "Update succeeded")
+	}
+}
+
 func main() {
 	dbwrapper.CleanUP()
 	dbwrapper.Migrate()
@@ -74,6 +89,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", HandleAnnounceRequest).Methods("POST")
 	router.HandleFunc("/swarms", HandleSwarmsRequest).Methods("GET")
+	router.HandleFunc("/stat", HandleStatUpdate).Methods("PUT")
 
 	logger.LogMsg(LogSign, "Listening on port 3000")
 	log.Fatal(http.ListenAndServe(":3000", router))
