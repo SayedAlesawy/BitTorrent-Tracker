@@ -1,14 +1,17 @@
 package main;
 
 import javafx.application.Platform;
+import javafx.geometry.Point2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.FontSmoothingType;
 import javafx.scene.transform.Affine;
+import javafx.scene.transform.NonInvertibleTransformException;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -40,6 +43,8 @@ class MainFrame extends Pane {
     boolean zoomIn = false;
     boolean zoomOut = false;
 
+    ArrayList<Swarm> oldData;
+    ArrayList<Swarm> data;
     volatile ArrayList<Swarm> newData;
     volatile boolean isConnected;
     volatile String link;
@@ -87,36 +92,34 @@ class MainFrame extends Pane {
         getChildren().add(sidebar);
 
         setOnKeyPressed((e) -> {
-            if(e.getCode() == KeyCode.I) {
+            if (e.getCode() == KeyCode.I) {
                 zoomIn = true;
-            }
-            else if(e.getCode() == KeyCode.O) {
+            } else if (e.getCode() == KeyCode.O) {
                 zoomOut = true;
             }
         });
         setOnKeyReleased((e) -> {
-            if(e.getCode() == KeyCode.I) {
+            if (e.getCode() == KeyCode.I) {
                 zoomIn = false;
-            }
-            else if(e.getCode() == KeyCode.O) {
+            } else if (e.getCode() == KeyCode.O) {
                 zoomOut = false;
             }
         });
 
         Thread zoomThread = new Thread(() -> {
-            while(true) {
-                if(zoomIn) {
+            while (true) {
+                if (zoomIn) {
                     transform.setMyy(transform.getMyy() * 1.01);
                     transform.setMxx(transform.getMxx() * 1.01);
                     transform.setTx(transform.getTx());
                     transform.setTy(transform.getTy());
-                } else if(zoomOut) {
+                } else if (zoomOut) {
                     transform.setMyy(transform.getMyy() * 0.99);
                     transform.setMxx(transform.getMxx() * 0.99);
                     transform.setTx(transform.getTx());
                     transform.setTy(transform.getTy());
                 }
-                if(zoomIn || zoomOut) {
+                if (zoomIn || zoomOut) {
                     Platform.runLater(() -> paint());
                     try {
                         Thread.sleep(10);
@@ -151,9 +154,32 @@ class MainFrame extends Pane {
             transform.setTy(oldY + e.getSceneY() - initY);
             paint();
         });
+        Tooltip tp = new Tooltip();
+        setOnMouseMoved((e) -> {
+            double x = e.getSceneX();
+            double y = e.getSceneY();
+            boolean flag = false;
+            for (Swarm s : oldData) {
+                for (Peer p : s.peers) {
+                    double px = p.point.getX();
+                    double py = p.point.getY();
+                    if (x >= px && y >= py && x <= px + PEER_RADIUS && y <= py + PEER_RADIUS) {
+                        flag = true;
+                        tp.setText("ID: " + p.id + "\nIP: " + p.ip + ":" + p.port +
+                                "\n" + "Status: " + p.event + "\n" +
+                                "Uploaded: " + p.uploaded + "\n" +
+                                "Downloaded: " + p.downloaded + "\n" +
+                                "Left: " + p.left);
+                        tp.show(this, e.getScreenX(), e.getScreenY());
+                    }
+                }
+                if (!flag) tp.hide();
+            }
+        });
     }
 
     private void paint() {
+        data = new ArrayList<>(newData);
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setFontSmoothingType(FontSmoothingType.GRAY);
         gc.setTransform(1, 0, 0, 1, 0, 0);
@@ -165,17 +191,18 @@ class MainFrame extends Pane {
         double angle = 0;
         int k = 4;
         int j = 1;
-        for (Swarm s : newData) {
+        for (Swarm s : data) {
             paintSwarm(gc, s, d * Math.cos(angle), d * Math.sin(angle));
             angle += 2 * Math.PI / k;
             j--;
-            if(j == 0) {
+            if (j == 0) {
                 d += dInc;
                 angle += Math.PI / k;
                 k *= 2;
                 j = k;
             }
         }
+        oldData = new ArrayList<>(data);
     }
 
     void paintSwarm(GraphicsContext gc, Swarm s, double x, double y) {
@@ -196,17 +223,17 @@ class MainFrame extends Pane {
             paintPeer(gc, p, pX, pY);
             angle += 2 * Math.PI / k;
             j--;
-            if(j == 0) {
+            if (j == 0) {
                 d += dInc;
                 angle += Math.PI / k;
                 k *= 2;
                 j = k;
             }
 
-            if(pX < minX) minX = pX;
-            if(pY < minY) minY = pY;
-            if(pX + PEER_RADIUS > maxX) maxX = pX + PEER_RADIUS;
-            if(pY + PEER_RADIUS > maxY) maxY = pY + PEER_RADIUS;
+            if (pX < minX) minX = pX;
+            if (pY < minY) minY = pY;
+            if (pX + PEER_RADIUS > maxX) maxX = pX + PEER_RADIUS;
+            if (pY + PEER_RADIUS > maxY) maxY = pY + PEER_RADIUS;
         }
         minX -= 10;
         maxX += 10;
@@ -219,17 +246,18 @@ class MainFrame extends Pane {
     void paintPeer(GraphicsContext gc, Peer p, double x, double y) {
         gc.strokeOval(x, y, PEER_RADIUS, PEER_RADIUS);
         Paint paint = gc.getFill();
-        if(p.event.equals(STARTED_EVENT)) {
+        if (p.event.equals(STARTED_EVENT)) {
             gc.setFill(Color.BLUE);
-        } else if(p.event.equals(STOPPED_EVENT)) {
+        } else if (p.event.equals(STOPPED_EVENT)) {
             gc.setFill(Color.RED);
-        } else if(p.event.equals(COMPLETED_EVENT)) {
+        } else if (p.event.equals(COMPLETED_EVENT)) {
             gc.setFill(Color.GREEN);
         } else {
             gc.setFill(Color.TRANSPARENT);
         }
         gc.fillOval(x, y, PEER_RADIUS, PEER_RADIUS);
         gc.setFill(paint);
+        p.point = transform.transform(x, y);
     }
 
     void connect() {
