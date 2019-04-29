@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func main() {
+func announce() {
 	args := os.Args
 	url := "http://localhost:3000"
 	infoHash := args[1]
@@ -36,4 +36,8 @@ func main() {
 
 	fmt.Println(res)
 	fmt.Println(string(body))
+}
+
+func main() {
+	announce()
 }
